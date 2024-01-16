@@ -1,0 +1,49 @@
+version: '3'
+
+services:      
+  db:
+    image: mysql:5.7
+    container_name: db
+    hostname: db
+    restart: always
+    tty: true
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=nodedb
+    ports:
+      - '3307:3306'
+    volumes:
+      - "./script.sql:/docker-entrypoint-initdb.d/script.sql"
+    networks:
+      - dockernet
+
+  nginx:
+    build: 
+      context: ./nginx
+    container_name: nginx
+    hostname: nginx
+    ports:
+      - "8080:80"
+    networks:
+      - dockernet
+    depends_on:
+     - node
+
+  node:
+    build: 
+      context: ./api
+    container_name: node
+    hostname: node
+    entrypoint: wait-for db:3306 -t 40 -- npm start
+    ports:
+      - "3000:3000"
+    restart: on-failure
+    networks:
+      - dockernet
+    depends_on:
+      - db
+
+networks:
+  dockernet:
+    driver: bridge
+
